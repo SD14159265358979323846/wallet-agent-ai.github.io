@@ -1,0 +1,104 @@
+// utils/modal.js
+
+// ── Carga contenido desde /content/*.html y abre el howModal ──
+async function loadModal(title, file) {
+  const res = await fetch(`./content/${file}`);
+  const html = await res.text();
+  document.getElementById("modalTitle").innerText = title;
+  document.getElementById("modalContent").innerHTML = html;
+  document.getElementById("howModal").classList.add("active");
+}
+
+// ── Abre con contenido externo ──
+export function openHow()        { loadModal("How it Works",       "how.html"); }
+export function openTerms()      { loadModal("Terms & Conditions", "terms.html"); }
+export function openPrivacy()    { loadModal("Privacy Policy",     "privacy.html"); }
+export function openAbout()      { loadModal("About",              "about.html"); }
+
+// ── Disclaimer: abre el modal dedicado #disclaimer ──
+export function openDisclaimer() { 
+  loadModal("Disclaimer", "disclaimer.html"); 
+}
+// Y en inicial 
+export function openInitialDisclaimer() {
+  document.getElementById("disclaimer").classList.add("active");
+}
+
+// ── Cierra modales ──
+export function closeHow() {
+  document.getElementById("howModal").classList.remove("active");
+}
+
+export function closeDisclaimer() {
+  document.getElementById("disclaimer").classList.remove("active");
+}
+
+// ── Modal de acción con botón confirm (usado por otras partes del app) ──
+export function openActionModal({ title, content, confirmText = "Confirm", onConfirm, hideConfirm = false }) {
+  document.getElementById("modalTitle").innerText = title;
+  document.getElementById("modalContent").innerHTML = `
+    ${content}
+    ${!hideConfirm ? `
+    <div class="modal-actions">
+      <button id="confirmActionBtn">${confirmText}</button>
+    </div>` : ""}
+  `;
+  document.getElementById("howModal").classList.add("active");
+
+  if (!hideConfirm) {
+    document.getElementById("confirmActionBtn").onclick = async () => {
+      try {
+        closeHow();
+        await onConfirm();
+      } catch (err) {
+        console.error(err);
+      }
+    };
+  }
+}
+
+
+// modal para deposit
+export async function deposit() {
+  if (!APP_STATE.activeAccount || !APP_STATE.ownerBadgeAddress || !APP_STATE.componentAddress) {
+    console.error("Missing APP_STATE data for deposit");
+    return;
+  }
+
+  const tokens = await getAccountTokens();
+
+  const options = tokens.map(t => `
+    <option value="${t.address}">
+      ${t.symbol} — ${t.name} (${parseFloat(t.amount).toFixed(2)} available)
+    </option>
+  `).join("");
+
+  openActionModal({
+    title: "Deposit to Agent Wallet",
+    content: `
+      <label>Select Token</label>
+      <select id="deposit-resource" style="width:100%;padding:8px;margin:8px 0 16px;border-radius:8px;background:#111;color:white;border:1px solid #333;">
+        ${options}
+      </select>
+      <label>Amount</label>
+      <input id="deposit-amount" type="number"
+        placeholder="0.0" min="0" step="0.1"
+        style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;"
+      />
+    `,
+    confirmText: "Deposit",
+    onConfirm: async () => {
+      const resourceAddress = document.getElementById("deposit-resource").value.trim();
+      const amount          = document.getElementById("deposit-amount").value.trim();
+
+      if (!resourceAddress || !amount || parseFloat(amount) <= 0) {
+        console.error("Invalid deposit inputs");
+        return;
+      }
+
+      const manifest = depositManifest(resourceAddress, amount);
+      console.log("DEPOSIT MANIFEST:", manifest);
+      await sendTransaction(manifest);
+    }
+  });
+}
