@@ -1,3 +1,6 @@
+ssh -T git@github.com 
+los ficheros se suben por shh . 
+
 npm run build 
 
 git add . 
@@ -5,3 +8,6 @@ git commit "fix lo q sea "
 git push 
 
 npm run deploy 
+
+
+

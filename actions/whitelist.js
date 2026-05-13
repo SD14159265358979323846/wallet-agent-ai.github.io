@@ -147,7 +147,9 @@ CALL_METHOD Address("${component}") "get_whitelist" ;
         return items.map(tuple => ({
           name:    tuple.fields[0].value,
           address: tuple.fields[1].value
-        }));
+        }))
+        .filter(w => w.address !== APP_STATE.activeAccount.address);
+
 
 }
 

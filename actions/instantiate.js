@@ -17,7 +17,7 @@ CALL_FUNCTION
     Decimal("${maxPerTx}")
     Decimal("${multisig}")
     Decimal("${dailyCap}")
-    Array<Tuple>()
+    Array<Tuple>(Tuple("owner", Address("${account}")))
     "${agentName}"
     ${badgeDays}u64
     Address("${CONFIG.DAPP_DEFINITION}")
