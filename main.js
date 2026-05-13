@@ -150,6 +150,11 @@ export const rdt = RadixDappToolkit({
   applicationVersion: CONFIG.APP_VERSION,
 });
 
+// Pedir cuentas al usuario
+rdt.walletApi.setRequestData(
+  DataRequestBuilder.accounts().atLeast(1)
+);
+
 
 // Pedir datos al usuario
 rdt.walletApi.walletData$.subscribe((walletData) => {
@@ -164,10 +169,6 @@ rdt.walletApi.walletData$.subscribe((walletData) => {
 });
 
 
-// Escuchar conexión
-rdt.walletApi.walletData$.subscribe((walletData) => {
-  console.log("Wallet data:", walletData);
-});
 
 
 

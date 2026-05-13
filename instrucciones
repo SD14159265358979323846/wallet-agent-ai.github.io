@@ -1,0 +1,7 @@
+npm run build 
+
+git add . 
+git commit "fix lo q sea "
+git push 
+
+npm run deploy 

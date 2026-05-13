@@ -21,7 +21,7 @@ export const CONFIG = {
 
   // ===== PACKAGE =====
   PACKAGE_ADDRESS: "package_rdx1p4zthdh3ryfj03k54l7hyc0afm7yeklw7j8ewyntp6zd76uat30w0h",
-  DEV_FEE_COLLECTOR: "componente_de_feecomponent_rdx1cp9ndw4jvmtkumzwrkj4vjl9fek0g2smdxzm3klfwxutl2jwgjllfe",
+  DEV_FEE_COLLECTOR: "component_rdx1cp9ndw4jvmtkumzwrkj4vjl9fek0g2smdxzm3klfwxutl2jwgjllfe",
 
   // ===== NFT DETECTION =====
   AGENT_BADGE_NAME: "AgentWallet Badge",
