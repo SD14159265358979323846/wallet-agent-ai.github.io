@@ -33,6 +33,7 @@ export const CONFIG = {
   // MAINNET
   NETWORK_ID: 1,
   GATEWAY_URL: "https://mainnet.radixdlt.com",
+  DASHBOARD_URL: "https://dashboard.radixscan.io",
   //TOKEN CONST 
   XRD: "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd",
   //APP 

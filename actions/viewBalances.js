@@ -45,7 +45,7 @@ export async function viewBalances() {
       `).join("")
     : `<p style="color:#555;font-size:13px;text-align:center;">No assets found in agent wallet.</p>`;
 
-  const explorerUrl = `${CONFIG.GATEWAY_URL}/component/${APP_STATE.componentAddress}`;
+  const explorerUrl = `${CONFIG.DASHBOARD_URL}/component/${APP_STATE.componentAddress}`;
 
   openActionModal({
     title: "Agent Wallet Balances",
