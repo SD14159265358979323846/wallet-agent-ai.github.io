@@ -32,6 +32,114 @@ CALL_METHOD
 `;
 }
 
+async function getInstantiateDetails(intentHash) {
+  // Esperar un poco para que el ledger confirme
+  await new Promise(r => setTimeout(r, 5000));
+
+  const response = await fetch(`${CONFIG.GATEWAY_URL}/transaction/committed-details`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      intent_hash: intentHash,
+      opt_ins: { balance_changes: true }
+    })
+  });
+
+  const data = await response.json();
+  const entities = data?.transaction?.affected_global_entities || [];
+  const newEntities = data?.transaction?.new_global_entities || [];
+
+  // Extraer component address — es el nuevo componente creado
+  const componentAddress = newEntities.find(e => e.startsWith("component_")) || null;
+
+  // Extraer owner badge — resource fungible nuevo
+  const ownerBadgeAddress = newEntities.find(e => 
+    e.startsWith("resource_") && !e.includes("nf")
+  ) || null;
+
+  // Extraer agent badge — resource non-fungible nuevo
+  const agentBadgeAddress = newEntities.find(e =>
+    e.startsWith("resource_") && e !== ownerBadgeAddress
+  ) || null;
+
+  return {
+    componentAddress,
+    ownerBadgeAddress,
+    agentBadgeAddress,
+    badgeLocalId: "#1#",
+    allEntities: newEntities,
+  };
+}
+
+function showInstantiateResult(details, notarizerAccount) {
+  const envContent = `COMPONENT_ADDRESS=${details.componentAddress}
+BADGE_RESOURCE_ADDRESS=${details.agentBadgeAddress}
+BADGE_LOCAL_ID=${details.badgeLocalId}
+OWNER_BADGE_ADDRESS=${details.ownerBadgeAddress}`;
+
+  openActionModal({
+    title: "✅ Agent Wallet Instantiated",
+    content: `
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+        <p style="color:#2ecc71;font-size:14px;margin:0;">
+          ✅ Your Agent Wallet has been created successfully.
+        </p>
+        <p style="font-size:13px;color:#8b949e;margin:0;">
+          Save the following information — you will need it to configure your agent.
+        </p>
+
+        <div>
+          <label style="font-size:12px;color:#8b949e;">Component Address</label>
+          <input readonly value="${details.componentAddress}"
+            style="width:100%;padding:8px;border-radius:8px;background:#111;color:#2ecc71;border:1px solid #333;box-sizing:border-box;font-family:monospace;font-size:11px;margin-top:4px;"
+            onclick="this.select()"/>
+        </div>
+
+        <div>
+          <label style="font-size:12px;color:#8b949e;">Owner Badge Address (PVOB)</label>
+          <input readonly value="${details.ownerBadgeAddress}"
+            style="width:100%;padding:8px;border-radius:8px;background:#111;color:#f39c12;border:1px solid #333;box-sizing:border-box;font-family:monospace;font-size:11px;margin-top:4px;"
+            onclick="this.select()"/>
+        </div>
+
+        <div>
+          <label style="font-size:12px;color:#8b949e;">Agent Badge Address (AWB)</label>
+          <input readonly value="${details.agentBadgeAddress}"
+            style="width:100%;padding:8px;border-radius:8px;background:#111;color:#3498db;border:1px solid #333;box-sizing:border-box;font-family:monospace;font-size:11px;margin-top:4px;"
+            onclick="this.select()"/>
+        </div>
+
+        <div>
+          <label style="font-size:12px;color:#8b949e;">Badge Local ID</label>
+          <input readonly value="${details.badgeLocalId}"
+            style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;font-family:monospace;font-size:11px;margin-top:4px;"
+            onclick="this.select()"/>
+        </div>
+
+        <div>
+          <label style="font-size:12px;color:#8b949e;">Notarizer Account</label>
+          <input readonly value="${notarizerAccount}"
+            style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;font-family:monospace;font-size:11px;margin-top:4px;"
+            onclick="this.select()"/>
+        </div>
+
+        <div>
+          <label style="font-size:12px;color:#8b949e;">📋 .env file — copy this to your agent configuration</label>
+          <textarea readonly rows="5"
+            style="width:100%;padding:8px;border-radius:8px;background:#0a0a0a;color:#2ecc71;border:1px solid #2ecc71;box-sizing:border-box;font-family:monospace;font-size:11px;margin-top:4px;resize:none;"
+            onclick="this.select()">${envContent}</textarea>
+        </div>
+
+        <p style="font-size:11px;color:#555;margin:0;">
+          ⚠️ The notarizer address and private key come from your SDK keystore — do not share them.
+        </p>
+      </div>
+    `,
+    confirmText: "Done",
+    onConfirm: () => {},
+  });
+}
+
 export async function instantiate() {
   if (!APP_STATE.activeAccount) {
     console.error("No active account");
@@ -50,8 +158,8 @@ export async function instantiate() {
         </div>
         <div>
           <label style="font-size:13px;color:#8b949e;">Notarizer Account</label>
-          <p style="font-size:12px;color:#555;margin:2px 0 6px;">The agent notarizer account address generated by the SDK (agentwallet init).</p>
-          <input id="inst-notarizer" type="text" placeholder="account_tdx_2_..."
+          <p style="font-size:12px;color:#555;margin:2px 0 6px;">The agent notarizer account address generated by the SDK (agent-wallet init).</p>
+          <input id="inst-notarizer" type="text" placeholder="account_rdx1..."
             style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;"/>
         </div>
         <div>
@@ -76,11 +184,11 @@ export async function instantiate() {
     `,
     confirmText: "Instantiate",
     onConfirm: async () => {
-      const agentName       = document.getElementById("inst-name").value.trim();
+      const agentName        = document.getElementById("inst-name").value.trim();
       const notarizerAccount = document.getElementById("inst-notarizer").value.trim();
-      const maxPerTx        = document.getElementById("inst-max-tx").value.trim();
-      const multisig        = document.getElementById("inst-multisig").value.trim();
-      const dailyCap        = document.getElementById("inst-daily").value.trim();
+      const maxPerTx         = document.getElementById("inst-max-tx").value.trim();
+      const multisig         = document.getElementById("inst-multisig").value.trim();
+      const dailyCap         = document.getElementById("inst-daily").value.trim();
 
       if (!agentName || !notarizerAccount || !maxPerTx || !multisig || !dailyCap) {
         console.error("All fields required for instantiate");
@@ -100,8 +208,17 @@ export async function instantiate() {
       const manifest = instantiateManifest({
         maxPerTx, multisig, dailyCap, agentName, notarizerAccount
       });
+
       console.log("INSTANTIATE MANIFEST:", manifest);
-      await sendTransaction(manifest);
+      const result = await sendTransaction(manifest);
+
+      if (result) {
+        const intentHash = result.transactionIntentHash;
+        console.log("TX confirmed, fetching details for:", intentHash);
+        const details = await getInstantiateDetails(intentHash);
+        console.log("Instantiate details:", details);
+        showInstantiateResult(details, notarizerAccount);
+      }
     }
   });
 }
