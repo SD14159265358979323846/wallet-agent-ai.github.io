@@ -34,9 +34,7 @@ export async function viewBalances() {
     console.error("Missing componentAddress for viewBalances");
     return;
   }
-
   const balances = await fetchComponentBalances();
-
   const rows = balances.length > 0
     ? balances.map(b => `
         <div style="display:flex;justify-content:space-between;align-items:center;
@@ -47,12 +45,24 @@ export async function viewBalances() {
       `).join("")
     : `<p style="color:#555;font-size:13px;text-align:center;">No assets found in agent wallet.</p>`;
 
+  const explorerUrl = `${CONFIG.GATEWAY_URL}/component/${APP_STATE.componentAddress}`;
+
   openActionModal({
     title: "Agent Wallet Balances",
     hideConfirm: true,
     content: `
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
         ${rows}
+        <div style="margin-top:8px;padding:10px;border-radius:8px;background:#0a0f1a;border:1px solid #1f2937;">
+          <p style="font-size:11px;color:#555;margin:0 0 4px;">Component Address</p>
+          <p style="font-size:11px;font-family:monospace;color:#8b949e;margin:0;word-break:break-all;">
+            ${APP_STATE.componentAddress}
+          </p>
+          <a href="${explorerUrl}" target="_blank"
+            style="display:inline-block;margin-top:8px;font-size:12px;color:#276ff5;text-decoration:none;">
+            View on Radix Dashboard ↗
+          </a>
+        </div>
       </div>
     `,
   });
