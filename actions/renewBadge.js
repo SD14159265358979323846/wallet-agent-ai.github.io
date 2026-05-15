@@ -4,6 +4,53 @@ import { openActionModal } from "../utils/modal.js";
 import { sendTransaction } from "./radix.js";
 
 const EPOCHS_PER_DAY = 288;
+export async function renewBadge() {
+  if (!APP_STATE.activeAccount || !APP_STATE.ownerBadgeAddress || !APP_STATE.componentAddress || !APP_STATE.agentBadgeLocalId) {
+    console.error("Missing APP_STATE data for renewBadge");
+    return;
+  }
+  openActionModal({
+    title: "Renew Agent Badge",
+    content: `
+  <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+    <div>
+      <label style="font-size:13px;color:#8b949e;">Select Badge</label>
+      <p style="font-size:12px;color:#555;margin:2px 0 6px;">Choose which badge to renew.</p>
+      <select id="badge-select"
+        style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;">
+        ${APP_STATE.agentBadgeLocalIds.map(id => `<option value="${id}">${id}</option>`).join("")}
+      </select>
+    </div>
+    <div>
+      <label style="font-size:13px;color:#8b949e;">Renewal Duration (days)</label>
+      <p style="font-size:12px;color:#555;margin:2px 0 8px;">
+        How many days to extend the agent badge validity.
+      </p>
+      <input id="renew-days" type="number"
+        placeholder="30" min="1" step="1"
+        style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;"
+      />
+    </div>
+  </div>
+`,
+
+    confirmText: "Renew",
+    onConfirm: async () => {
+      const days = parseInt(document.getElementById("renew-days").value);
+      if (!days || days < 1) {
+        console.error("Invalid days for renewBadge");
+        return;
+      }
+      const badgeOptions = APP_STATE.agentBadgeLocalIds.map(id => 
+  `<option value="${id}">${id}</option>`
+).join("");
+
+        const manifest = renewBadgeManifest(days);
+      console.log("RENEW BADGE MANIFEST:", manifest);
+      await sendTransaction(manifest);
+    }
+  });
+}
 
 function renewBadgeManifest(days) {
   const account    = APP_STATE.activeAccount.address;
@@ -11,7 +58,6 @@ function renewBadgeManifest(days) {
   const component  = APP_STATE.componentAddress;
   const localId    = APP_STATE.agentBadgeLocalId;
   const epochs     = Math.round(days * EPOCHS_PER_DAY);
-
   return `
 CALL_METHOD
     Address("${account}")
@@ -26,39 +72,4 @@ CALL_METHOD
     ${epochs}u64
 ;
 `;
-}
-
-export async function renewBadge() {
-  if (!APP_STATE.activeAccount || !APP_STATE.ownerBadgeAddress || !APP_STATE.componentAddress || !APP_STATE.agentBadgeLocalId) {
-    console.error("Missing APP_STATE data for renewBadge");
-    return;
-  }
-
-  openActionModal({
-    title: "Renew Agent Badge",
-    content: `
-      <label style="font-size:13px;color:#8b949e;">Renewal Duration (days)</label>
-      <p style="font-size:12px;color:#555;margin:2px 0 8px;">
-        How many days to extend the agent badge validity.
-      </p>
-      <input id="renew-days" type="number"
-        placeholder="30" min="1" step="1"
-        style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;"
-      />
-      <p style="font-size:12px;color:#555;margin:8px 0 0;">
-        Badge ID: <code style="color:#276ff5;">${APP_STATE.agentBadgeLocalId}</code>
-      </p>
-    `,
-    confirmText: "Renew",
-    onConfirm: async () => {
-      const days = parseInt(document.getElementById("renew-days").value);
-      if (!days || days < 1) {
-        console.error("Invalid days for renewBadge");
-        return;
-      }
-      const manifest = renewBadgeManifest(days);
-      console.log("RENEW BADGE MANIFEST:", manifest);
-      await sendTransaction(manifest);
-    }
-  });
 }

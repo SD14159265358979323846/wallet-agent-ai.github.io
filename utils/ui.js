@@ -27,6 +27,7 @@ export function updateUI(hasAgent, hasBalance, hasWhitelist) {
   const depositCard   = document.getElementById("deposit-card");
   const whitelistCard = document.getElementById("whitelist-card");
 
+
   if (!hasAgent) {
     depositCard?.classList.add("disabled");
     whitelistCard?.classList.add("disabled");

@@ -102,3 +102,40 @@ export async function deposit() {
     }
   });
 }
+// ── Emergency Modal — nivel 1: elige acción ──
+export function openEmergencyModal() {
+  document.getElementById("modalTitle").innerText = "🔴 Emergency Controls";
+  document.getElementById("modalContent").innerHTML = `
+    <p style="color:#8b949e;font-size:14px;margin:0 0 20px;">
+      Select an emergency action. Each action will require your signature in Radix Wallet.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="closeHow(); freeze();"
+        style="padding:14px;border-radius:10px;background:#1a1a2e;border:1px solid #444;
+               color:white;font-size:15px;cursor:pointer;text-align:left;">
+        🧊 <strong>Freeze Agent</strong>
+        <span style="display:block;font-size:12px;color:#8b949e;margin-top:4px;">
+          Lock all outgoing activity of the agent wallet.
+        </span>
+      </button>
+      <button onclick="closeHow(); unfreeze();"
+        style="padding:14px;border-radius:10px;background:#1a1a2e;border:1px solid #444;
+               color:white;font-size:15px;cursor:pointer;text-align:left;">
+        🔓 <strong>Unfreeze Agent</strong>
+        <span style="display:block;font-size:12px;color:#8b949e;margin-top:4px;">
+          Restore all outgoing activity of the agent wallet.
+        </span>
+      </button>
+      <button onclick="closeHow(); emergencyWithdraw();"
+        style="padding:14px;border-radius:10px;background:#2d0000;border:1px solid #c0392b;
+               color:#ff6b6b;font-size:15px;cursor:pointer;text-align:left;">
+        💸 <strong>Emergency Withdraw</strong>
+        <span style="display:block;font-size:12px;color:#8b949e;margin-top:4px;">
+          Recover ALL funds from the contract directly to your wallet.
+        </span>
+      </button>
+    </div>
+  `;
+  document.getElementById("howModal").classList.add("active");
+}
+

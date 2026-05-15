@@ -114,7 +114,7 @@ async function approvePending(pending) {
   const account    = APP_STATE.activeAccount.address;
   const ownerBadge = APP_STATE.ownerBadgeAddress;
   const component  = APP_STATE.componentAddress;
-
+  
   const manifest = `
 CALL_METHOD
     Address("${account}")
@@ -137,6 +137,7 @@ CALL_METHOD
     Enum<0u8>()
 ;
 `;
+  console.log("APPROVE MANIFEST:\n", manifest);
 
   await sendTransaction(manifest);
   updatePendingCard(null);

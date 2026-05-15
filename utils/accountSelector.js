@@ -34,6 +34,7 @@ export async function updateAccountState(account) {
   APP_STATE.activeAccount     = account;
   APP_STATE.ownerBadgeAddress = null;
   APP_STATE.componentAddress  = null;
+  APP_STATE.agentAccountAddress  = null;
   APP_STATE.agentBadgeAddress = null;
   APP_STATE.agentBadgeLocalId = null;
   APP_STATE.hasAgent          = false;

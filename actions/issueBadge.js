@@ -29,6 +29,7 @@ CALL_METHOD
     Expression("ENTIRE_WORKTOP")
 ;
 `;
+
 }
 
 export async function issueBadge() {
@@ -36,8 +37,7 @@ export async function issueBadge() {
     console.error("Missing APP_STATE data for issueBadge");
     return;
   }
-
-  openActionModal({
+openActionModal({
     title: "Issue New Agent Badge",
     content: `
       <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
@@ -65,17 +65,16 @@ export async function issueBadge() {
     `,
     confirmText: "Issue Badge",
     onConfirm: async () => {
-      const agentName = document.getElementById("issue-name").value.trim();
-      const days      = parseInt(document.getElementById("issue-days").value);
-
-      if (!agentName || !days || days < 1) {
+      const agentName    = document.getElementById("issue-name").value.trim();
+      const days         = parseInt(document.getElementById("issue-days").value);
+      if (!agentName || !days || days < 1 ) {
         console.error("Invalid inputs for issueBadge");
         return;
       }
-
       const manifest = issueBadgeManifest(agentName, days);
       console.log("ISSUE BADGE MANIFEST:", manifest);
       await sendTransaction(manifest);
     }
   });
 }
+

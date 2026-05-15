@@ -3,28 +3,23 @@ import {
   DataRequestBuilder,
 } from "@radixdlt/radix-dapp-toolkit";
 
-
 import { CONFIG } from "./config.js";
 import { renderAccountSelector } from "./utils/accountSelector.js";
 import { APP_STATE } from "./utils/state.js";
 import { accountHasAgent } from "./utils/nft.js"; 
 
 // modal de acciones 
-import { freeze } from "./actions/freeze.js";
-
-import { unfreeze } from "./actions/unfreeze.js";
-
 import { deposit } from "./actions/deposit.js";
 window.deposit = deposit;
 
 import { instantiate } from "./actions/instantiate.js";
 window.instantiate = instantiate;
 
-import { renewBadge } from "./actions/renewBadge.js";
-window.renewBadge = renewBadge;
+//import { renewBadge } from "./actions/renewBadge.js";
+//window.renewBadge = renewBadge;
 
-import { issueBadge } from "./actions/issueBadge.js";
-window.issueBadge = issueBadge;
+//import { issueBadge } from "./actions/issueBadge.js";
+//window.issueBadge = issueBadge;
 
 import { revokeBadge } from "./actions/revokeBadge.js";
 window.revokeBadge = revokeBadge;
@@ -42,43 +37,13 @@ import { viewBalances } from "./actions/viewBalances.js";
 window.viewBalances = viewBalances;
 
 import { getPendingTransfer, updatePendingCard, checkAndOpenPending } from "./actions/pending.js";
-
 window.checkAndOpenPending = checkAndOpenPending;
-
-
 
 
 import { addWhitelist, removeWhitelist } from "./actions/whitelist.js";
 window.addWhitelist    = addWhitelist;
 window.removeWhitelist = removeWhitelist;
 
-window.toggleFreeze = function() {
-  openActionModal({
-    title: "Freeze / Unfreeze",
-    hideConfirm: true,
-    content: `
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
-        <button id="btn-freeze" style="padding:12px;border-radius:8px;background:#c0392b;color:white;border:none;cursor:pointer;font-size:15px;font-weight:600;">
-          ❄️ Freeze — Lock all activity
-        </button>
-        <button id="btn-unfreeze" style="padding:12px;border-radius:8px;background:#27ae60;color:white;border:none;cursor:pointer;font-size:15px;font-weight:600;">
-          ✅ Unfreeze — Restore operations
-        </button>
-      </div>
-    `,
-  });
-
-  setTimeout(() => {
-    document.getElementById("btn-freeze")?.addEventListener("click", () => {
-      closeHow();
-      freeze();
-    });
-    document.getElementById("btn-unfreeze")?.addEventListener("click", () => {
-      closeHow();
-      unfreeze();
-    });
-  }, 50);
-};
 
 window.toggleWhitelist = function() {
   openActionModal({
@@ -109,9 +74,46 @@ window.toggleWhitelist = function() {
 };
 
 
+import { freeze } from "./actions/freeze.js";
+import { unfreeze } from "./actions/unfreeze.js";
+import { emergencyWithdraw } from "./actions/emergencyWithdraw.js";
+window.freeze = freeze;
+window.unfreeze = unfreeze;
 
 
-
+window.openEmergencyModal = function() {
+  openActionModal({
+    title: "🔴 Emergency Controls",
+    hideConfirm: true,
+    content: `
+      <p style="color:#8b949e;font-size:13px;margin:0 0 16px;">
+        Select an action. Each will require your signature in Radix Wallet.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px;">
+        <button id="btn-freeze" style="padding:12px;border-radius:8px;background:#1a1a2e;border:1px solid #444;color:white;cursor:pointer;font-size:15px;font-weight:600;text-align:left;">
+          🧊 Freeze — Lock all agent activity
+        </button>
+        <button id="btn-unfreeze" style="padding:12px;border-radius:8px;background:#1a1a2e;border:1px solid #444;color:white;cursor:pointer;font-size:15px;font-weight:600;text-align:left;">
+          🔓 Unfreeze — Restore agent operations
+        </button>
+        <button id="btn-withdraw" style="padding:12px;border-radius:8px;background:#2d0000;border:1px solid #c0392b;color:#ff6b6b;cursor:pointer;font-size:15px;font-weight:600;text-align:left;">
+          💸 Emergency Withdraw — Recover ALL funds
+        </button>
+      </div>
+    `,
+  });
+  setTimeout(() => {
+    document.getElementById("btn-freeze")?.addEventListener("click", () => {
+      closeHow(); freeze();
+    });
+    document.getElementById("btn-unfreeze")?.addEventListener("click", () => {
+      closeHow(); unfreeze();
+    });
+    document.getElementById("btn-withdraw")?.addEventListener("click", () => {
+      closeHow(); emergencyWithdraw();
+    });
+  }, 50);
+};
 
 
 //modal general 
