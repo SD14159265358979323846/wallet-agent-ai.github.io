@@ -33,7 +33,6 @@ CALL_METHOD
 }
 
 async function getInstantiateDetails(intentHash) {
-  // Esperar un poco para que el ledger confirme
   await new Promise(r => setTimeout(r, 5000));
 
   const response = await fetch(`${CONFIG.GATEWAY_URL}/transaction/committed-details`, {
@@ -41,35 +40,38 @@ async function getInstantiateDetails(intentHash) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       intent_hash: intentHash,
-      opt_ins: { balance_changes: true }
+      opt_ins: { balance_changes: true, receipt_state_changes: true }
     })
   });
 
   const data = await response.json();
-  const entities = data?.transaction?.affected_global_entities || [];
-  const newEntities = data?.transaction?.new_global_entities || [];
+  const tx = data?.transaction;
 
-  // Extraer component address — es el nuevo componente creado
-  const componentAddress = newEntities.find(e => e.startsWith("component_")) || null;
-
-  // Extraer owner badge — resource fungible nuevo
-  const ownerBadgeAddress = newEntities.find(e => 
-    e.startsWith("resource_") && !e.includes("nf")
+  // Component — aparece múltiples veces, cogemos el que no es el DevFeeCollector
+  const stateChanges = tx?.receipt?.state_changes?.new_global_entities || [];
+  const componentAddress = stateChanges.find(e => 
+    e.startsWith("component_") && e !== CONFIG.DEV_FEE_COLLECTOR
   ) || null;
 
-  // Extraer agent badge — resource non-fungible nuevo
-  const agentBadgeAddress = newEntities.find(e =>
-    e.startsWith("resource_") && e !== ownerBadgeAddress
-  ) || null;
+  // Owner Badge — fungible_balance_changes nuevo resource en la cuenta del owner
+  const fungibleChanges = tx?.balance_changes?.fungible_balance_changes || [];
+  const ownerBadgeAddress = fungibleChanges.find(c =>
+    c.entity_address === APP_STATE.activeAccount.address &&
+    c.resource_address !== "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd"
+  )?.resource_address || null;
+
+  // Agent Badge — non_fungible_balance_changes
+  const nfChanges = tx?.balance_changes?.non_fungible_balance_changes || [];
+  const agentBadgeAddress = nfChanges[0]?.resource_address || null;
 
   return {
     componentAddress,
     ownerBadgeAddress,
     agentBadgeAddress,
     badgeLocalId: "#1#",
-    allEntities: newEntities,
   };
 }
+
 
 function showInstantiateResult(details, notarizerAccount) {
   const envContent = `COMPONENT_ADDRESS=${details.componentAddress}
@@ -183,42 +185,58 @@ export async function instantiate() {
       </div>
     `,
     confirmText: "Instantiate",
-    onConfirm: async () => {
-      const agentName        = document.getElementById("inst-name").value.trim();
-      const notarizerAccount = document.getElementById("inst-notarizer").value.trim();
-      const maxPerTx         = document.getElementById("inst-max-tx").value.trim();
-      const multisig         = document.getElementById("inst-multisig").value.trim();
-      const dailyCap         = document.getElementById("inst-daily").value.trim();
+onConfirm: async () => {
+  const agentName        = document.getElementById("inst-name").value.trim();
+  const notarizerAccount = document.getElementById("inst-notarizer").value.trim();
+  const maxPerTx         = document.getElementById("inst-max-tx").value.trim();
+  const multisig         = document.getElementById("inst-multisig").value.trim();
+  const dailyCap         = document.getElementById("inst-daily").value.trim();
 
-      if (!agentName || !notarizerAccount || !maxPerTx || !multisig || !dailyCap) {
-        console.error("All fields required for instantiate");
-        return;
-      }
+  if (!agentName || !notarizerAccount || !maxPerTx || !multisig || !dailyCap) {
+    console.error("All fields required for instantiate");
+    return;
+  }
 
-      if (parseFloat(maxPerTx) > parseFloat(multisig)) {
-        console.error("Max per TX cannot exceed Multisig Threshold");
-        return;
-      }
+  if (parseFloat(maxPerTx) > parseFloat(multisig)) {
+    console.error("Max per TX cannot exceed Multisig Threshold");
+    return;
+  }
 
-      if (parseFloat(multisig) > parseFloat(dailyCap)) {
-        console.error("Multisig Threshold cannot exceed Daily Cap");
-        return;
-      }
+  if (parseFloat(multisig) > parseFloat(dailyCap)) {
+    console.error("Multisig Threshold cannot exceed Daily Cap");
+    return;
+  }
 
-      const manifest = instantiateManifest({
-        maxPerTx, multisig, dailyCap, agentName, notarizerAccount
-      });
+  const manifest = instantiateManifest({
+    maxPerTx, multisig, dailyCap, agentName, notarizerAccount
+  });
 
-      console.log("INSTANTIATE MANIFEST:", manifest);
-      const result = await sendTransaction(manifest);
+  console.log("INSTANTIATE MANIFEST:", manifest);
+  const result = await sendTransaction(manifest);
 
-      if (result) {
-        const intentHash = result.transactionIntentHash;
-        console.log("TX confirmed, fetching details for:", intentHash);
-        const details = await getInstantiateDetails(intentHash);
-        console.log("Instantiate details:", details);
-        showInstantiateResult(details, notarizerAccount);
-      }
-    }
+  if (result) {
+    const intentHash = result.transactionIntentHash;
+
+    // Mostrar mensaje de espera
+    openActionModal({
+      title: "⏳ Processing...",
+      content: `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:16px;">
+          <div style="font-size:32px;">⏳</div>
+          <p style="color:#8b949e;font-size:14px;text-align:center;margin:0;">
+            Transaction confirmed. Fetching your agent configuration...<br/>
+            This may take a few seconds.
+          </p>
+        </div>
+      `,
+      confirmText: null,
+      onConfirm: () => {},
+    });
+
+    const details = await getInstantiateDetails(intentHash);
+    console.log("Instantiate details:", details);
+    showInstantiateResult(details, notarizerAccount);
+  }
+}
   });
 }
