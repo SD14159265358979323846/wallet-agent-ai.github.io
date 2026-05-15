@@ -31,7 +31,6 @@ CALL_METHOD
 ;
 `;
 }
-
 async function getInstantiateDetails(intentHash) {
   await new Promise(r => setTimeout(r, 5000));
 
@@ -47,13 +46,14 @@ async function getInstantiateDetails(intentHash) {
   const data = await response.json();
   const tx = data?.transaction;
 
-  // Component — aparece múltiples veces, cogemos el que no es el DevFeeCollector
-  const stateChanges = tx?.receipt?.state_changes?.new_global_entities || [];
-  const componentAddress = stateChanges.find(e => 
-    e.startsWith("component_") && e !== CONFIG.DEV_FEE_COLLECTOR
-  ) || null;
+  // Component — buscar GlobalGenericComponent en created_substates
+  const createdSubstates = tx?.receipt?.state_changes?.created_substates || [];
+  const componentAddress = createdSubstates.find(s =>
+    s?.substate_id?.entity_type === "GlobalGenericComponent" &&
+    s?.substate_id?.entity_address !== CONFIG.DEV_FEE_COLLECTOR
+  )?.substate_id?.entity_address || null;
 
-  // Owner Badge — fungible_balance_changes nuevo resource en la cuenta del owner
+  // Owner Badge — fungible nuevo en cuenta del owner
   const fungibleChanges = tx?.balance_changes?.fungible_balance_changes || [];
   const ownerBadgeAddress = fungibleChanges.find(c =>
     c.entity_address === APP_STATE.activeAccount.address &&
@@ -71,7 +71,6 @@ async function getInstantiateDetails(intentHash) {
     badgeLocalId: "#1#",
   };
 }
-
 
 function showInstantiateResult(details, notarizerAccount) {
   const envContent = `COMPONENT_ADDRESS=${details.componentAddress}
