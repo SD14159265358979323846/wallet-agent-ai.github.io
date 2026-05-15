@@ -44,25 +44,19 @@ async function getInstantiateDetails(intentHash) {
   });
 
   const data = await response.json();
-  const tx = data?.transaction;
+  const newGlobalEntities = data?.transaction?.receipt?.state_updates?.new_global_entities || [];
 
-  // Component — buscar GlobalGenericComponent en created_substates
-  const createdSubstates = tx?.receipt?.state_changes?.created_substates || [];
-  const componentAddress = createdSubstates.find(s =>
-    s?.substate_id?.entity_type === "GlobalGenericComponent" &&
-    s?.substate_id?.entity_address !== CONFIG.DEV_FEE_COLLECTOR
-  )?.substate_id?.entity_address || null;
+  const componentAddress = newGlobalEntities.find(e =>
+    e.entity_type === "GlobalGenericComponent"
+  )?.entity_address || null;
 
-  // Owner Badge — fungible nuevo en cuenta del owner
-  const fungibleChanges = tx?.balance_changes?.fungible_balance_changes || [];
-  const ownerBadgeAddress = fungibleChanges.find(c =>
-    c.entity_address === APP_STATE.activeAccount.address &&
-    c.resource_address !== "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd"
-  )?.resource_address || null;
+  const ownerBadgeAddress = newGlobalEntities.find(e =>
+    e.entity_type === "GlobalFungibleResource"
+  )?.entity_address || null;
 
-  // Agent Badge — non_fungible_balance_changes
-  const nfChanges = tx?.balance_changes?.non_fungible_balance_changes || [];
-  const agentBadgeAddress = nfChanges[0]?.resource_address || null;
+  const agentBadgeAddress = newGlobalEntities.find(e =>
+    e.entity_type === "GlobalNonFungibleResource"
+  )?.entity_address || null;
 
   return {
     componentAddress,
