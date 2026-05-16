@@ -15,12 +15,6 @@ window.deposit = deposit;
 import { instantiate } from "./actions/instantiate.js";
 window.instantiate = instantiate;
 
-//import { renewBadge } from "./actions/renewBadge.js";
-//window.renewBadge = renewBadge;
-
-//import { issueBadge } from "./actions/issueBadge.js";
-//window.issueBadge = issueBadge;
-
 import { revokeBadge } from "./actions/revokeBadge.js";
 window.revokeBadge = revokeBadge;
 
