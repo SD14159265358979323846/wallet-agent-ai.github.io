@@ -2,7 +2,7 @@
 
 // ── Carga contenido desde /content/*.html y abre el howModal ──
 async function loadModal(title, file) {
-  const res = await fetch(`./content/${file}`);
+  const res = await fetch(`/content/${file}`);
   const html = await res.text();
   document.getElementById("modalTitle").innerText = title;
   document.getElementById("modalContent").innerHTML = html;
