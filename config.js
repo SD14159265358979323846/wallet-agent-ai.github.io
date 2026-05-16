@@ -43,8 +43,8 @@ export const CONFIG = {
   DAPP_DEFINITION:
     "account_rdx12x0tunkp3gw94cfer06a067sf87xzrntdnzsxtkfk4hkz6xwj0jh98",
   //PACKAGE
-  PACKAGE_ADDRESS: "package_rdx1p47rsejy63872vgt49v95ms95ewhwj8pqlfmt25a0cj52kz4876ret",
-  DEV_FEE_COLLECTOR: "component_rdx1crdwdgyxmrqsph2qdghf294364sue6cceyapg6uf2yd60e2ll9ckpd",
+  PACKAGE_ADDRESS: "package_rdx1p4kccqml96yxk7qk566emesftqkvpwe0gq040vkrsrx5eqwzj6adv9",
+  DEV_FEE_COLLECTOR: "component_rdx1cz0thqmllmfrrpy0ejrpmjs9v7pguvqnq745nev9nn37g6y6nv9muy",
 
   //NFT DETECTION 
   AGENT_BADGE_NAME: "AgentWallet Badge",
