@@ -1,4 +1,5 @@
 // utils/modal.js
+import { showAppToast } from "./notify.js";
 
 // ── Carga contenido desde /content/*.html y abre el howModal ──
 async function loadModal(title, file) {
@@ -6,6 +7,7 @@ async function loadModal(title, file) {
   const html = await res.text();
   document.getElementById("modalTitle").innerText = title;
   document.getElementById("modalContent").innerHTML = html;
+  clearModalActions();
   document.getElementById("howModal").classList.add("active");
 }
 
@@ -16,15 +18,14 @@ export function openPrivacy()    { loadModal("Privacy Policy",     "privacy.html
 export function openAbout()      { loadModal("About",              "about.html"); }
 
 // ── Disclaimer: abre el modal dedicado #disclaimer ──
-export function openDisclaimer() { 
-  loadModal("Disclaimer", "disclaimer.html"); 
+export function openDisclaimer() {
+  loadModal("Disclaimer", "disclaimer.html");
 }
-// Y en inicial 
+
 export function openInitialDisclaimer() {
   document.getElementById("disclaimer").classList.add("active");
 }
 
-// ── Cierra modales ──
 export function closeHow() {
   document.getElementById("howModal").classList.remove("active");
 }
@@ -33,28 +34,72 @@ export function closeDisclaimer() {
   document.getElementById("disclaimer").classList.remove("active");
 }
 
-// ── Modal de acción con botón confirm (usado por otras partes del app) ──
+function clearModalActions() {
+  const actions = document.getElementById("modalActions");
+  if (actions) actions.innerHTML = "";
+}
+
+export function showModalError(message) {
+  const el = document.getElementById("modalError");
+  if (!el) {
+    showAppToast(message, "error");
+    return;
+  }
+  el.textContent = message;
+  el.style.display = message ? "block" : "none";
+  if (message) showAppToast(message, "error");
+}
+
+export function clearModalError() {
+  showModalError("");
+}
+
+export function setModalLoading(message) {
+  document.getElementById("modalTitle").innerText = "Please wait";
+  document.getElementById("modalContent").innerHTML = `
+    <div id="modalError" style="display:none"></div>
+    <div class="modal-loading">
+      <div class="modal-loading-spinner">⏳</div>
+      <p>${message}</p>
+    </div>
+  `;
+  clearModalActions();
+}
+
 export function openActionModal({ title, content, confirmText = "Confirm", onConfirm, hideConfirm = false }) {
   document.getElementById("modalTitle").innerText = title;
   document.getElementById("modalContent").innerHTML = `
+    <div id="modalError" style="display:none"></div>
     ${content}
-    ${!hideConfirm ? `
-    <div class="modal-actions">
-      <button id="confirmActionBtn">${confirmText}</button>
-    </div>` : ""}
   `;
-  document.getElementById("howModal").classList.add("active");
 
-  if (!hideConfirm) {
+  const actions = document.getElementById("modalActions");
+  if (hideConfirm) {
+    clearModalActions();
+  } else {
+    actions.innerHTML = `
+      <button type="button" id="confirmActionBtn" class="modal-primary-btn">${confirmText}</button>
+    `;
+
     document.getElementById("confirmActionBtn").onclick = async () => {
+      const btn = document.getElementById("confirmActionBtn");
+      btn.disabled = true;
       try {
-        closeHow();
-        await onConfirm();
+        const keepOpen = await onConfirm();
+        if (keepOpen !== false) closeHow();
       } catch (err) {
         console.error(err);
+        const message = err?.message || "Something went wrong. Please try again.";
+        showModalError(message);
+      } finally {
+        if (document.getElementById("confirmActionBtn")) {
+          btn.disabled = false;
+        }
       }
     };
   }
+
+  document.getElementById("howModal").classList.add("active");
 }
 
 // ── Emergency Modal — nivel 1: elige acción ──
@@ -91,6 +136,6 @@ export function openEmergencyModal() {
       </button>
     </div>
   `;
+  clearModalActions();
   document.getElementById("howModal").classList.add("active");
 }
-

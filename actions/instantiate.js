@@ -1,6 +1,7 @@
 import { CONFIG } from "../config.js";
 import { APP_STATE } from "../utils/state.js";
-import { openActionModal } from "../utils/modal.js";
+import { openActionModal, showModalError, clearModalError, setModalLoading, closeHow } from "../utils/modal.js";
+import { showAppToast } from "../utils/notify.js";
 import { sendTransaction } from "./radix.js";
 
 function instantiateManifest({ maxPerTx, multisig, dailyCap, agentName, notarizerAccount }) {
@@ -137,7 +138,16 @@ OWNER_BADGE_ADDRESS=${details.ownerBadgeAddress}`;
 
 export async function instantiate() {
   if (!APP_STATE.activeAccount) {
-    console.error("No active account");
+    openActionModal({
+      title: "Connect wallet first",
+      content: `
+        <p style="color:#8b949e;font-size:14px;margin:0;">
+          Connect your Radix Wallet and select an account before instantiating an agent wallet.
+        </p>
+      `,
+      confirmText: "OK",
+      onConfirm: () => {},
+    });
     return;
   }
 
@@ -160,75 +170,116 @@ export async function instantiate() {
         <div>
           <label style="font-size:13px;color:#8b949e;">Max per Transaction</label>
           <p style="font-size:12px;color:#555;margin:2px 0 6px;">Maximum amount the agent can spend in a single transaction.</p>
-          <input id="inst-max-tx" type="number" placeholder="400" min="0" step="1"
+          <input id="inst-max-tx" type="number" value="400" min="0" step="1"
             style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;"/>
         </div>
         <div>
           <label style="font-size:13px;color:#8b949e;">Multisig Threshold</label>
           <p style="font-size:12px;color:#555;margin:2px 0 6px;">Maximum the agent and owner can spend together in one TX.</p>
-          <input id="inst-multisig" type="number" placeholder="1000" min="0" step="1"
+          <input id="inst-multisig" type="number" value="1000" min="0" step="1"
             style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;"/>
         </div>
         <div>
           <label style="font-size:13px;color:#8b949e;">Daily Cap</label>
           <p style="font-size:12px;color:#555;margin:2px 0 6px;">Maximum total spending allowed per day.</p>
-          <input id="inst-daily" type="number" placeholder="10000" min="0" step="1"
+          <input id="inst-daily" type="number" value="10000" min="0" step="1"
             style="width:100%;padding:8px;border-radius:8px;background:#111;color:white;border:1px solid #333;box-sizing:border-box;"/>
         </div>
       </div>
     `,
     confirmText: "Instantiate",
-onConfirm: async () => {
-  const agentName        = document.getElementById("inst-name").value.trim();
-  const notarizerAccount = document.getElementById("inst-notarizer").value.trim();
-  const maxPerTx         = document.getElementById("inst-max-tx").value.trim();
-  const multisig         = document.getElementById("inst-multisig").value.trim();
-  const dailyCap         = document.getElementById("inst-daily").value.trim();
+    onConfirm: async () => {
+      clearModalError();
 
-  if (!agentName || !notarizerAccount || !maxPerTx || !multisig || !dailyCap) {
-    console.error("All fields required for instantiate");
-    return;
-  }
+      const agentName        = document.getElementById("inst-name")?.value.trim();
+      const notarizerAccount = document.getElementById("inst-notarizer")?.value.trim();
+      const maxPerTx         = document.getElementById("inst-max-tx")?.value.trim();
+      const multisig         = document.getElementById("inst-multisig")?.value.trim();
+      const dailyCap         = document.getElementById("inst-daily")?.value.trim();
 
-  if (parseFloat(maxPerTx) > parseFloat(multisig)) {
-    console.error("Max per TX cannot exceed Multisig Threshold");
-    return;
-  }
+      if (!agentName || !notarizerAccount || !maxPerTx || !multisig || !dailyCap) {
+        showModalError("Please fill in all fields (Agent Name and Notarizer Account are required).");
+        return false;
+      }
 
-  if (parseFloat(multisig) > parseFloat(dailyCap)) {
-    console.error("Multisig Threshold cannot exceed Daily Cap");
-    return;
-  }
+      if (!/^account_(rdx1|tdx_2_)/.test(notarizerAccount)) {
+        showModalError("Notarizer Account must start with account_rdx1... or account_tdx_2_...");
+        return false;
+      }
 
-  const manifest = instantiateManifest({
-    maxPerTx, multisig, dailyCap, agentName, notarizerAccount
-  });
+      const maxTxNum = parseFloat(maxPerTx);
+      const multisigNum = parseFloat(multisig);
+      const dailyNum = parseFloat(dailyCap);
 
-  console.log("INSTANTIATE MANIFEST:", manifest);
-  const result = await sendTransaction(manifest);
+      if ([maxTxNum, multisigNum, dailyNum].some(n => Number.isNaN(n) || n <= 0)) {
+        showModalError("Max per TX, Multisig Threshold, and Daily Cap must be numbers greater than 0.");
+        return false;
+      }
 
-  if (result) {
-    const intentHash = result.transactionIntentHash;
+      if (maxTxNum > multisigNum) {
+        showModalError("Max per TX cannot exceed Multisig Threshold.");
+        return false;
+      }
 
-    // Mostrar mensaje de espera
-    openActionModal({
-      title: "⏳ Processing...",
-      content: `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:16px;">
-          <div style="font-size:32px;">⏳</div>
-          <p style="color:#8b949e;font-size:14px;text-align:center;margin:0;">
-            Transaction confirmed. Fetching your agent configuration...<br/>
-            This may take a few seconds.
-          </p>
-        </div>
-      `,
-      hideConfirm: true,
-    });
+      if (multisigNum > dailyNum) {
+        showModalError("Multisig Threshold cannot exceed Daily Cap.");
+        return false;
+      }
 
-    const details = await getInstantiateDetails(intentHash);
-    console.log("Instantiate details:", details);
-    showInstantiateResult(details, notarizerAccount);
-  }
-}
+      const manifest = instantiateManifest({
+        maxPerTx, multisig, dailyCap, agentName, notarizerAccount
+      });
+
+      console.log("INSTANTIATE MANIFEST:", manifest);
+      setModalLoading("Check your Radix Wallet and approve the Instantiate transaction.");
+
+      const tx = await sendTransaction(manifest);
+
+      if (!tx.ok) {
+        openActionModal({
+          title: "Instantiate not completed",
+          content: `
+            <p style="color:#ff6b6b;font-size:14px;margin:0 0 12px;font-weight:600;">
+              ${tx.error || "Transaction was not submitted."}
+            </p>
+            <p style="color:#8b949e;font-size:13px;margin:0;">
+              Make sure Radix Wallet is connected on <strong>Mainnet</strong> and you are using
+              <a href="${CONFIG.VERIFIED_ORIGIN}" target="_blank" rel="noopener">${CONFIG.VERIFIED_ORIGIN}</a>.
+            </p>
+          `,
+          confirmText: "OK",
+          onConfirm: () => {},
+        });
+        return false;
+      }
+
+      setModalLoading("Transaction approved. Fetching your agent configuration…");
+
+      const intentHash = tx.value.transactionIntentHash;
+      const details = await getInstantiateDetails(intentHash);
+      console.log("Instantiate details:", details);
+
+      closeHow();
+
+      if (!details.componentAddress) {
+        openActionModal({
+          title: "Instantiate submitted",
+          content: `
+            <p style="color:#8b949e;font-size:14px;margin:0 0 12px;">
+              Your transaction was submitted but contract details are not available yet.
+              Check your wallet history and refresh the page in a minute.
+            </p>
+            <p style="font-size:12px;color:#555;margin:0;font-family:monospace;">${intentHash}</p>
+          `,
+          confirmText: "OK",
+          onConfirm: () => {},
+        });
+        return false;
+      }
+
+      showInstantiateResult(details, notarizerAccount);
+      showAppToast("Agent wallet created successfully!", "success");
+      return false;
+    }
   });
 }
