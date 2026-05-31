@@ -1,7 +1,20 @@
 import "./styles.css";
+import { CONFIG, isVerifiedOrigin } from "./config.js";
 import { rdt } from "./rdt.js";
 import { renderAccountSelector } from "./utils/accountSelector.js";
 import { APP_STATE } from "./utils/state.js";
+
+if (!isVerifiedOrigin()) {
+  const banner = document.createElement("div");
+  banner.id = "origin-warning";
+  banner.innerHTML = `
+    <p><strong>Mainnet wallet connect only works on the verified site.</strong></p>
+    <p>Radix Wallet cannot validate this dApp from <code>${window.location.origin}</code>.</p>
+    <p>Set Radix Wallet to <strong>Mainnet</strong>, then open:</p>
+    <a href="${CONFIG.VERIFIED_ORIGIN}" target="_blank" rel="noopener">${CONFIG.VERIFIED_ORIGIN}</a>
+  `;
+  document.body.prepend(banner);
+}
 import { accountHasAgent } from "./utils/nft.js"; 
 
 // modal de acciones 

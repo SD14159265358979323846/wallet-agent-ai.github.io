@@ -27,6 +27,37 @@ body {
   color: var(--text);
 }
 
+#origin-warning {
+  position: fixed;
+  top: var(--header-height);
+  left: 16px;
+  right: 16px;
+  z-index: 9999;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(192, 57, 43, 0.95);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+#origin-warning p {
+  margin: 0 0 8px;
+}
+
+#origin-warning a {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+#origin-warning code {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 /* ================================
    HEADER / TOP BAR
    ================================ */
